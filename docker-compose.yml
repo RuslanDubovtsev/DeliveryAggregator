@@ -1,0 +1,26 @@
+services:
+  aggregator:
+    build: .
+    command: uvicorn aggregator.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      PROVIDER_BASE_URL: "http://mock_services:8001"
+
+    depends_on:
+      mock_services:
+          condition: service_healthy
+
+  mock_services:
+    build: .
+    command: uvicorn mock_services.main:app --host 0.0.0.0 --port 8001
+
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/openapi.json', timeout=2).close()"
+      interval: 10s
+      timeout: 3s
+      retries: 5
